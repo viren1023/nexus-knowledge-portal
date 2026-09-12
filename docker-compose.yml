@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: nexus-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-nexus}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-nexus_password}
+      POSTGRES_DB: ${DB_NAME:-knowledge_portal}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nexus-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-nexus} -d ${DB_NAME:-knowledge_portal}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nexus-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama service is disabled — using host Ollama via OLLAMA_BASE_URL in .env
+  # To re-enable: uncomment below and add 'ollama' back to fastapi-backend depends_on
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: nexus-ollama
+  #   restart: always
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_models:/root/.ollama
+  #   networks:
+  #     - nexus-network
+
+  fastapi-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexus-backend
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./scripts:/scripts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nexus-network
+
+  fastapi-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexus-worker
+    restart: always
+    env_file:
+      - .env
+    command: [ "rq", "worker", "ingestion", "-u", "${REDIS_URL:-redis://redis:6379/0}" ]
+    volumes:
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nexus-network
+
+  react-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexus-frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - fastapi-backend
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_models:
