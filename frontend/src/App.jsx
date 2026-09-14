@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import ProjectDetails from './pages/ProjectDetails';
 import AssetViewerPage from './pages/AssetViewerPage';
+import ChatPage from './pages/ChatPage';
 
 // Simple Auth Guard
 const RequireAuth = ({ children }) => {
@@ -30,6 +31,22 @@ function App() {
         element={
           <RequireAuth>
             <ProjectDetails />
+          </RequireAuth>
+        } 
+      />
+      <Route 
+        path="/projects/:id/chat" 
+        element={
+          <RequireAuth>
+            <ChatPage />
+          </RequireAuth>
+        } 
+      />
+      <Route 
+        path="/chat" 
+        element={
+          <RequireAuth>
+            <ChatPage />
           </RequireAuth>
         } 
       />

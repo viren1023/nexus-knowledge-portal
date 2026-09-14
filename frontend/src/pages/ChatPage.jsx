@@ -1,135 +1,238 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { chatService } from '../services/api';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { chatService, projectService } from '../services/api';
+import SessionPanel from '../components/chat/SessionPanel';
+import ChatContainer from '../components/chat/ChatContainer';
+import Header from '../components/Header';
+import { Menu, ChevronDown } from 'lucide-react';
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [sessionId, setSessionId] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const params = useParams();
+  const navigate = useNavigate();
 
+  // Handle both /projects/:id/chat and /chat
+  const [projectId, setProjectId] = useState(params.id || null);
+  const [projectList, setProjectList] = useState([]);
+  const [currentProject, setCurrentProject] = useState(null);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // If projectId is in params, ensure state reflects it
   useEffect(() => {
-    // Start session on load
-    const initSession = async () => {
+    if (params.id && params.id !== projectId) {
+      setProjectId(params.id);
+      setCurrentSessionId(null);
+    }
+  }, [params.id]);
+
+  // Fetch available projects to populate project selector if needed
+  useEffect(() => {
+    const loadProjects = async () => {
       try {
-        const res = await chatService.startSession();
-        setSessionId(res.data.session_id);
-        setMessages([{
-          id: 'welcome',
-          role: 'assistant',
-          content: 'Hello! I am Nexus AI. I have access to your organization\'s documents, code assets, and tasks. How can I help you today?'
-        }]);
+        const res = await projectService.getAll();
+        const projs = res.data.projects || [];
+        setProjectList(projs);
+
+        if (!projectId && projs.length > 0) {
+          // Default to first project if user came to /chat without an id
+          setProjectId(projs[0].id);
+        }
       } catch (err) {
-        console.error("Failed to start session");
+        console.error('Failed to load projects list', err);
       }
     };
-    initSession();
+    loadProjects();
   }, []);
 
+  // Fetch project details when projectId changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!projectId) return;
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || !sessionId) return;
+    const fetchProject = async () => {
+      try {
+        const res = await projectService.getOne(projectId);
+        setCurrentProject(res.data.project || res.data);
+      } catch (err) {
+        console.error('Failed to fetch project info', err);
+      }
+    };
+    fetchProject();
+  }, [projectId]);
 
-    const userMsg = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: userMsg }]);
-    setIsLoading(true);
+  // Fetch sessions for the active project
+  const fetchSessions = useCallback(async (autoSelectFirst = false) => {
+    if (!projectId) return;
+
+    setLoadingSessions(true);
+    try {
+      const res = await chatService.listSessions(projectId, 50);
+      const sessionList = res.data.sessions || [];
+      setSessions(sessionList);
+
+      if (sessionList.length > 0) {
+        // If no session selected or current session no longer exists
+        if (!currentSessionId || autoSelectFirst || !sessionList.some(s => s.id === currentSessionId)) {
+          setCurrentSessionId(sessionList[0].id);
+        }
+      } else {
+        // No sessions exist yet, automatically start a new one
+        handleNewSession();
+      }
+    } catch (err) {
+      console.error('Failed to fetch sessions', err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, [projectId, currentSessionId]);
+
+  useEffect(() => {
+    if (projectId) {
+      fetchSessions(true);
+    }
+  }, [projectId]);
+
+  const handleNewSession = async () => {
+    if (!projectId) return;
 
     try {
-      const res = await chatService.sendMessage({
-        session_id: sessionId,
-        message: userMsg
-      });
-      
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: res.data.response,
-        sources: res.data.sources,
-        confidence: res.data.confidence
-      }]);
+      const res = await chatService.startSession(projectId);
+      const newSession = {
+        id: res.data.session_id,
+        session_title: 'New Chat',
+        created_at: res.data.created_at || new Date().toISOString(),
+        last_accessed: res.data.created_at || new Date().toISOString(),
+        message_count: 0,
+        is_pinned: false
+      };
+
+      setSessions(prev => [newSession, ...prev.filter(s => s.id !== newSession.id)]);
+      setCurrentSessionId(newSession.id);
     } catch (err) {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error while processing your request.'
-      }]);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to start new chat session', err);
     }
   };
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-100px)] max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="bg-slate-900 px-6 py-4 border-b border-slate-800">
-        <h2 className="text-lg font-semibold text-white flex items-center">
-          <Bot className="w-5 h-5 mr-2 text-blue-400" />
-          Nexus AI Assistant
-        </h2>
-      </div>
+  const handleSelectSession = (sessionId) => {
+    setCurrentSessionId(sessionId);
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-blue-600 ml-3' : 'bg-slate-800 mr-3'}`}>
-                {msg.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
-              </div>
-              <div className={`px-4 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'}`}>
-                <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
-                
-                {msg.sources && msg.sources.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="text-xs font-semibold text-gray-500 mb-1">Sources Cited:</div>
-                    <ul className="text-xs text-gray-400 space-y-1">
-                      {msg.sources.map((src, i) => (
-                        <li key={i}>[{i+1}] {src.title}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="flex max-w-[80%] flex-row">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-slate-800 mr-3 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <div className="px-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-sm rounded-tl-none flex items-center space-x-2">
-                <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                <span className="text-sm text-gray-500">Thinking...</span>
-              </div>
-            </div>
+    // Touch last_accessed timestamp in background
+    if (projectId && sessionId) {
+      chatService.touchSession(projectId, sessionId).catch(err => {
+        console.warn('Failed to touch session', err);
+      });
+    }
+  };
+
+  const handleDeleteSession = async (sessionId) => {
+    if (!projectId || !sessionId) return;
+
+    try {
+      await chatService.deleteSession(projectId, sessionId);
+      const updated = sessions.filter(s => s.id !== sessionId);
+      setSessions(updated);
+
+      if (currentSessionId === sessionId) {
+        if (updated.length > 0) {
+          setCurrentSessionId(updated[0].id);
+        } else {
+          // If all sessions deleted, create a new one
+          handleNewSession();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete session', err);
+    }
+  };
+
+  const handleTogglePinSession = async (sessionId) => {
+    if (!projectId || !sessionId) return;
+
+    try {
+      const res = await chatService.pinSession(projectId, sessionId);
+      setSessions(prev => prev.map(s => {
+        if (s.id === sessionId) {
+          return { ...s, is_pinned: res.data.is_pinned };
+        }
+        return s;
+      }).sort((a, b) => {
+        if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+        return new Date(b.last_accessed || b.created_at) - new Date(a.last_accessed || a.created_at);
+      }));
+    } catch (err) {
+      console.error('Failed to toggle pin', err);
+    }
+  };
+
+  const currentSession = sessions.find(s => s.id === currentSessionId);
+
+  return (
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50">
+      {/* Unified Portal Header */}
+      <Header
+        projectName={currentProject?.name}
+        subTitle={currentProject?.name ? `Projects / ${currentProject.name} / Chat` : 'AI Chat'}
+        backTo={projectId ? `/projects/${projectId}` : '/'}
+        backLabel={currentProject?.name ? `Back to ${currentProject.name}` : 'Back to projects'}
+      >
+        {/* Mobile Sidebar Hamburger Toggle */}
+        <button
+          type="button"
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="lg:hidden inline-flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+          aria-label="Open chat history"
+          title="Chat History"
+        >
+          <Menu className="w-4 h-4" />
+          <span className="text-xs font-semibold">History</span>
+        </button>
+
+        {/* Project Selector if multiple projects exist */}
+        {projectList.length > 1 && (
+          <div className="relative hidden sm:block">
+            <select
+              value={projectId || ''}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setProjectId(newId);
+                navigate(`/projects/${newId}/chat`);
+              }}
+              className="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg pl-2.5 pr-7 py-1 text-xs font-semibold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500 truncate max-w-[160px]"
+            >
+              {projectList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </div>
+      </Header>
 
-      <div className="p-4 bg-white border-t border-gray-200">
-        <form onSubmit={handleSend} className="flex space-x-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your code, tasks, or documents..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center justify-center"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
+      {/* Main Workspace: Sidebar + Chat Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Session Panel Sidebar (Light Cohesive Theme) */}
+        <SessionPanel
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onSelectSession={handleSelectSession}
+          onNewSession={handleNewSession}
+          onDeleteSession={handleDeleteSession}
+          onTogglePinSession={handleTogglePinSession}
+          loading={loadingSessions}
+          isOpen={isMobileSidebarOpen}
+          onClose={() => setIsMobileSidebarOpen(false)}
+        />
+
+        {/* Full-Screen Chat Viewport */}
+        <ChatContainer
+          projectId={projectId}
+          sessionId={currentSessionId}
+          currentSession={currentSession}
+          onSessionUpdated={() => fetchSessions(false)}
+        />
       </div>
     </div>
   );

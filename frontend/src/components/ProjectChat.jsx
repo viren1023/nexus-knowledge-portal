@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { chatService } from '../services/api';
 
 export default function ProjectChat({ projectId }) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -25,7 +27,7 @@ export default function ProjectChat({ projectId }) {
       try {
         const res = await chatService.startSession(projectId);
         setSessionId(res.data.session_id);
-        setMessages([{ type: 'assistant', content: "Hello! I'm your project AI. Ask me anything about this project, its tasks, or its codebase." }]);
+        setMessages([{ type: 'assistant', content: "Hello! Ask me anything about this project's documentation, tasks, or code assets." }]);
       } catch (err) {
         console.error('Failed to start chat session', err);
       }
@@ -119,12 +121,28 @@ export default function ProjectChat({ projectId }) {
           {/* Header */}
           <div className="bg-indigo-600 p-4 text-white flex justify-between items-center">
             <div>
-              <h3 className="font-bold">Project AI</h3>
-              <p className="text-indigo-100 text-xs">Task Assistant & Knowledge</p>
+              <h3 className="font-bold">Project Assistant</h3>
+              <p className="text-indigo-100 text-xs">Knowledge & Tasks</p>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-indigo-200 hover:text-white transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button 
+                type="button"
+                onClick={() => navigate(`/projects/${projectId}/chat`)} 
+                title="Expand to Full Screen Chat" 
+                className="text-indigo-200 hover:text-white p-1 rounded-md hover:bg-indigo-700/50 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </button>
+              <button 
+                type="button"
+                onClick={() => setIsOpen(false)} 
+                className="text-indigo-200 hover:text-white p-1 rounded-md hover:bg-indigo-700/50 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}

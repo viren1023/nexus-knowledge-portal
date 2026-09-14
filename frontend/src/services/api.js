@@ -79,8 +79,12 @@ export const searchService = {
 export const chatService = {
   checkContent: (projectId) => api.get(`/projects/${projectId}/chat/check-content`),
   startSession: (projectId) => api.post(`/projects/${projectId}/chat/session/start`),
+  listSessions: (projectId, limit = 50) => api.get(`/projects/${projectId}/chat/sessions/list?limit=${limit}`),
   sendMessage: (projectId, data) => api.post(`/projects/${projectId}/chat/message`, data),
-  getHistory: (projectId, sessionId, limit = 10) => api.get(`/projects/${projectId}/chat/session/${sessionId}/history?limit=${limit}`),
+  getHistory: (projectId, sessionId, limit = 50) => api.get(`/projects/${projectId}/chat/session/${sessionId}/history?limit=${limit}`),
+  touchSession: (projectId, sessionId) => api.patch(`/projects/${projectId}/chat/session/${sessionId}/touch`),
+  deleteSession: (projectId, sessionId) => api.delete(`/projects/${projectId}/chat/session/${sessionId}`),
+  pinSession: (projectId, sessionId) => api.patch(`/projects/${projectId}/chat/session/${sessionId}/pin`),
 };
 
 export default api;
