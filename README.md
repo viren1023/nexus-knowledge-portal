@@ -27,10 +27,10 @@ Turn repositories, documents, reusable code, and project tasks into an intellige
 * [Overview](#-overview)
 * [Why Nexus?](#-why-nexus)
 * [Core Features](#-core-features)
-* [How It Works](#-how-it-works)
-* [System Architecture](#-system-architecture)
+* [How It Works](#-how-the-system-works)
+* [System Architecture](#️-system-architecture)
 * [Knowledge Ingestion](#-knowledge-ingestion-pipeline)
-* [AI Question Answering](#-ai-question-answering-pipeline)
+* [AI Question Answering](#-ai-question-answering)
 * [GitHub Repository Intelligence](#-github-repository-intelligence)
 * [Semantic Search](#-semantic-search)
 * [AI Task Creation](#-ai-assisted-task-creation)
@@ -38,7 +38,7 @@ Turn repositories, documents, reusable code, and project tasks into an intellige
 * [Project Structure](#-project-structure)
 * [Backend Architecture](#-backend-architecture)
 * [Frontend Architecture](#-frontend-architecture)
-* [Database Design](#-database-design)
+* [Database Design](#-database-architecture)
 * [API Documentation](#-api-documentation)
 * [Authentication](#-authentication)
 * [Role-Based Access](#-role-based-access)
@@ -46,13 +46,12 @@ Turn repositories, documents, reusable code, and project tasks into an intellige
 * [Environment Configuration](#-environment-configuration)
 * [Installation](#-installation)
 * [Running the Project](#-running-the-project)
-* [Screenshots](#-screenshots)
+* [Screenshots](#️-screenshots)
 * [Example Workflow](#-complete-example-workflow)
 * [Development Guide](#-development-guide)
 * [Troubleshooting](#-troubleshooting)
 * [Future Improvements](#-future-improvements)
-* [Contributing](#-contributing)
-* [License](#-license)
+* [Presentation](docs/Presentation.pdf)
 
 ---
 
@@ -1225,7 +1224,7 @@ The results are combined and sorted by relevance.
 
 ---
 
-# 🗄️ Database Architecture
+# 🗄️ Database Architecture <a name="-database-architecture"></a>
 
 The database is PostgreSQL with the `pgvector` extension.
 
@@ -1760,11 +1759,29 @@ nexus-frontend
 | Backend    | http://localhost:8000              |
 | Swagger    | http://localhost:8000/docs         |
 | OpenAPI    | http://localhost:8000/openapi.json |
-| PostgreSQL | localhost:5433                     |
-| Redis      | localhost:6379                     |
-| Ollama     | localhost:11434                    |
 
 > PostgreSQL is exposed on host port `5433` while PostgreSQL listens on `5432` inside its container.
+
+---
+
+# 🏃 Running the Project
+
+Once all prerequisites are configured and Docker services are started, the application will be available at the URLs listed above.
+
+To monitor running containers:
+
+```bash
+docker compose ps
+docker compose logs -f
+```
+
+To restart a specific service:
+
+```bash
+docker compose restart fastapi-backend
+```
+
+See [Docker Architecture](#-docker-architecture) for full container setup details.
 
 ---
 
@@ -1831,8 +1848,6 @@ docs/screenshots/task-board.png
 ```
 
 ![Task Board](docs/screenshots/task-board.png)
-
-> **Tip:** Create a `docs/screenshots/` directory and add actual screenshots from the running application. This makes the README much more professional on GitHub.
 
 ---
 
@@ -2005,6 +2020,40 @@ Yes, create it.
 ```
 
 The task is then persisted in PostgreSQL and appears on the project task board.
+
+---
+
+# 🖥️ Frontend Architecture
+
+The frontend is a React 19 + Vite single-page application.
+
+```text
+frontend/src/
+├── components/   — Reusable UI components
+├── pages/        — Route-level page components
+├── services/     — API communication (api.js + Axios)
+├── App.jsx       — Root component and route definitions
+├── App.css       — Global application styles
+├── index.css     — Base/reset styles
+└── main.jsx      — Application entry point
+```
+
+Key technology choices:
+
+| Technology               | Purpose                  |
+| ------------------------ | ------------------------ |
+| React 19                 | Component model and UI   |
+| Vite                     | Dev server and bundling  |
+| React Router             | Client-side routing      |
+| Axios                    | HTTP requests to FastAPI |
+| Tailwind CSS             | Utility-first styling    |
+| @hello-pangea/dnd        | Drag-and-drop task board |
+
+The API base URL is configured in:
+
+```text
+frontend/src/services/api.js
+```
 
 ---
 
@@ -2301,6 +2350,44 @@ This distinction is useful when modifying or improving the search engine.
 
 ---
 
+# 🔍 Troubleshooting
+
+## Docker containers not starting
+
+Check logs for the failing service:
+
+```bash
+docker compose logs -f <service-name>
+```
+
+## Ollama connection errors
+
+Ensure Ollama is running on the host and that `OLLAMA_BASE_URL` in `.env` points to the correct address.
+
+For Docker-to-host connectivity on Linux:
+
+```env
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+```
+
+## Database connection errors
+
+Verify PostgreSQL credentials in `.env` match the Docker Compose `postgres` service environment.
+
+## Models not found
+
+Run the model initialization script:
+
+```bash
+bash scripts/init-models.sh
+```
+
+## Frontend cannot reach backend
+
+Ensure `VITE_API_URL` (or the API base URL in `frontend/src/services/api.js`) points to `http://localhost:8000`.
+
+---
+
 # 🚧 Future Improvements
 
 Potential improvements include:
@@ -2456,58 +2543,6 @@ docker compose down -v
 ```
 
 > `docker compose down -v` removes persistent Docker volumes such as the PostgreSQL and Redis data volumes. Use it carefully.
-
----
-
-# 🤝 Contributing
-
-Contributions are welcome.
-
-## Development workflow
-
-```text
-Fork
-  ↓
-Create branch
-  ↓
-Make changes
-  ↓
-Run tests / lint
-  ↓
-Verify Docker services
-  ↓
-Commit
-  ↓
-Push
-  ↓
-Open Pull Request
-```
-
-Example:
-
-```bash
-git checkout -b feature/improved-search
-
-git add .
-
-git commit -m "feat: improve project knowledge search"
-
-git push origin feature/improved-search
-```
-
----
-
-# 📄 License
-
-Add the project's chosen license here.
-
-For an open-source release, add a corresponding:
-
-```text
-LICENSE
-```
-
-file to the repository.
 
 ---
 
