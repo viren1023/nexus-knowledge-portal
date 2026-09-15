@@ -69,57 +69,63 @@ function TopBar({ asset, projectId, onBack }) {
   const icon = isGit ? '📦' : getFileIconEmoji(ext);
 
   return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',borderBottom:'1px solid #e2e8f0',background:'#f8fafc',flexShrink:0,gap:12,flexWrap:'wrap'}}>
-      <div style={{display:'flex',alignItems:'center',gap:14,minWidth:0}}>
-        <button id="asset-viewer-back-btn" onClick={onBack}
-          style={{display:'flex',alignItems:'center',gap:6,background:'white',border:'1px solid #e2e8f0',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:13,fontWeight:600,color:'#475569',flexShrink:0}}
-          onMouseEnter={e=>{e.currentTarget.style.background='#f1f5f9';e.currentTarget.style.color='#0f172a';}}
-          onMouseLeave={e=>{e.currentTarget.style.background='white';e.currentTarget.style.color='#475569';}}>
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200 bg-slate-50/80 shrink-0 gap-3 flex-wrap">
+      <div className="flex items-center gap-3 min-w-0">
+        <button 
+          id="asset-viewer-back-btn" 
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-medium text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+        >
+          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
           </svg>
-          Back
+          <span>Back</span>
         </button>
-        <span style={{fontSize:20,flexShrink:0}}>{icon}</span>
-        <div style={{minWidth:0}}>
-          <h1 style={{margin:0,fontSize:15,fontWeight:700,color:'#0f172a',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'55vw'}}>{name}</h1>
-          <div style={{display:'flex',gap:8,marginTop:3,flexWrap:'wrap',alignItems:'center'}}>
-            <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.07em',color:'#64748b',background:'#f1f5f9',padding:'2px 8px',borderRadius:4}}>{typeBadge}</span>
+        <span className="text-xl shrink-0">{icon}</span>
+        <div className="min-w-0">
+          <h1 className="text-sm sm:text-base font-bold text-slate-900 truncate max-w-[55vw]">{name}</h1>
+          <div className="flex gap-2 mt-1 flex-wrap items-center text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{typeBadge}</span>
             {asset.role_access && (
-              <span style={{fontSize:10,fontWeight:600,color:'#475569',background:'#e2e8f0',padding:'2px 8px',borderRadius:4,textTransform:'capitalize'}}>
+              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded capitalize">
                 Access: {asset.role_access.split(',').join(', ')}
               </span>
             )}
-            <span style={{fontSize:10,fontWeight:700,color:'#16a34a',background:'#f0fdf4',padding:'2px 8px',borderRadius:4,textTransform:'uppercase',border:'1px solid #bbf7d0'}}>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded uppercase">
               Read Only
             </span>
             {asset.uploaded_at && (
-              <span style={{fontSize:10,color:'#94a3b8'}}>Uploaded {new Date(asset.uploaded_at).toLocaleString()}</span>
+              <span className="text-[11px] text-slate-400">Uploaded {new Date(asset.uploaded_at).toLocaleDateString()}</span>
             )}
           </div>
         </div>
       </div>
-      <div style={{display:'flex',gap:8,flexShrink:0}}>
+      <div className="flex items-center gap-2 shrink-0">
         {isGit && asset.repo_url && (
-          <a id="asset-viewer-open-repo-btn" href={asset.repo_url} target="_blank" rel="noopener noreferrer"
-            style={{display:'flex',alignItems:'center',gap:6,padding:'8px 16px',borderRadius:8,fontSize:13,fontWeight:600,background:'#4f46e5',color:'white',textDecoration:'none'}}
-            onMouseEnter={e=>{e.currentTarget.style.background='#4338ca';}}
-            onMouseLeave={e=>{e.currentTarget.style.background='#4f46e5';}}>
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <a 
+            id="asset-viewer-open-repo-btn" 
+            href={asset.repo_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
             </svg>
-            Open Repository
+            <span>Open Repository</span>
           </a>
         )}
         {!isGit && downloadUrl && (
-          <a id="asset-viewer-download-btn" href={downloadUrl} download
-            style={{display:'flex',alignItems:'center',gap:6,padding:'8px 16px',borderRadius:8,fontSize:13,fontWeight:600,background:'white',color:'#374151',border:'1px solid #d1d5db',textDecoration:'none'}}
-            onMouseEnter={e=>{e.currentTarget.style.background='#f9fafb';e.currentTarget.style.borderColor='#9ca3af';}}
-            onMouseLeave={e=>{e.currentTarget.style.background='white';e.currentTarget.style.borderColor='#d1d5db';}}>
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <a 
+            id="asset-viewer-download-btn" 
+            href={downloadUrl} 
+            download
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-xs transition-colors"
+          >
+            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
-            Download
+            <span>Download</span>
           </a>
         )}
       </div>
@@ -298,13 +304,18 @@ export default function AssetViewerPage() {
   const pageTitle = asset ? (asset.type === 'git_repo' ? asset.repo_name : asset.file_name) : 'Asset Viewer';
 
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f1f5f9'}}>
-      <Header projectName={pageTitle}/>
-      <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden',margin:'16px 24px 24px',borderRadius:12,border:'1px solid #e2e8f0',boxShadow:'0 1px 8px rgba(0,0,0,0.06)',background:'white'}}>
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      <Header 
+        projectName={pageTitle}
+        subTitle="Asset Viewer"
+        backTo={`/projects/${projectId}`}
+        backLabel="Back to project"
+      />
+      <div className="flex flex-col flex-1 overflow-hidden m-3 sm:m-5 rounded-xl border border-slate-200 shadow-xs bg-white">
         <style>{'@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
-        {loading && <div style={{height:3,background:'linear-gradient(90deg,#4f46e5,#818cf8,#4f46e5)',backgroundSize:'200% 100%',animation:'shimmer 1.2s infinite'}}/>}
+        {loading && <div className="h-0.5 bg-indigo-600 animate-pulse shrink-0" />}
         {asset && !loading && !error && <TopBar asset={asset} projectId={projectId} onBack={handleBack}/>}
-        <div style={{flex:1,overflow:'hidden',position:'relative'}}>{renderContent()}</div>
+        <div className="flex-1 overflow-hidden relative">{renderContent()}</div>
       </div>
     </div>
   );
