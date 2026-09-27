@@ -473,3 +473,43 @@ async def delete_repo_asset(project_id: UUID, repo_id: UUID, request: Request, d
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to delete repository asset and indexed data") from e
+
+@router.get("/documents/chunks/{chunk_id}")
+async def get_document_chunk(
+    project_id: UUID,
+    chunk_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Retrieve specific document chunk content and context for citation viewing"""
+    user_id = UUID(request.state.user_id)
+    user_role = request.state.user_role
+
+    if not check_project_membership(db, user_id, project_id):
+        return JSONResponse({"error": "Not a project member"}, status_code=403)
+
+    chunk = (
+        db.query(DocumentChunk)
+        .join(Document, DocumentChunk.document_id == Document.id)
+        .filter(
+            DocumentChunk.id == chunk_id,
+            Document.project_id == project_id
+        )
+        .first()
+    )
+    if not chunk:
+        return JSONResponse({"error": "Document chunk not found"}, status_code=404)
+
+    doc = chunk.document
+    if doc and not check_asset_access(user_role, doc.role_access):
+        return JSONResponse({"error": "Access forbidden"}, status_code=403)
+
+    return {
+        "chunk_id": str(chunk.id),
+        "document_id": str(chunk.document_id),
+        "chunk_order": chunk.chunk_order,
+        "content": chunk.content,
+        "chunk_path": chunk.chunk_path,
+        "file_name": chunk.file_name or (doc.file_name if doc else None),
+        "metadata": chunk.metadata_ or {}
+    }

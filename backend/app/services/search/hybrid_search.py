@@ -73,6 +73,7 @@ def hybrid_search(
                 "chunk_id": str(chunk.id),
                 "title": chunk.chunk_path or chunk.file_name or "Document Chunk",
                 "snippet": chunk.content[:300] + ("..." if len(chunk.content) > 300 else ""),
+                "content": chunk.content,
                 # cosine_distance returns 0–2; convert to similarity 0–1
                 "relevance_score": 0.9,
                 "source": chunk.file_name,
@@ -123,6 +124,7 @@ def hybrid_search(
                     if asset.docstring
                     else asset.full_signature[:300]
                 ),
+                "content": asset.docstring or asset.full_signature or "",
                 "relevance_score": min(
                     0.95, (asset.reusability_score / 10.0) + 0.3
                 ),
@@ -158,6 +160,7 @@ def hybrid_search(
                 "id": str(task.id),
                 "title": task.title,
                 "snippet": (task.description[:300] if task.description else ""),
+                "content": task.description or task.title or "",
                 "relevance_score": 0.75,
                 "source": "Tasks Database",
                 "metadata": {

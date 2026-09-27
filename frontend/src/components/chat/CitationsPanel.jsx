@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function CitationsPanel({ sources = [], confidence = 0.85, projectId }) {
+export default function CitationsPanel({ sources = [], confidence = 0.85, projectId, onSelectSource }) {
   const [expandedIndex, setExpandedIndex] = useState(0); // expand first citation by default
   const navigate = useNavigate();
 
@@ -66,6 +66,10 @@ export default function CitationsPanel({ sources = [], confidence = 0.85, projec
   };
 
   const handleOpenSource = (source) => {
+    if (onSelectSource) {
+      onSelectSource(source);
+      return;
+    }
     if (!projectId) return;
     const details = source.details || {};
     if (source.type === 'document' && details.document_id) {

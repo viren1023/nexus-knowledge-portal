@@ -1,13 +1,94 @@
 import React, { useState } from 'react';
 import { documentService } from '../services/api';
 
+const ROLES = [
+  { 
+    id: 'manager', 
+    label: 'Manager', 
+    level: 1, 
+    activeClass: 'bg-purple-50 text-purple-700 border-purple-300 ring-1 ring-purple-200 shadow-2xs font-semibold', 
+    dotClass: 'bg-purple-600' 
+  },
+  { 
+    id: 'team_lead', 
+    label: 'Team Lead', 
+    level: 2, 
+    activeClass: 'bg-sky-50 text-sky-700 border-sky-300 ring-1 ring-sky-200 shadow-2xs font-semibold', 
+    dotClass: 'bg-sky-600' 
+  },
+  { 
+    id: 'developer', 
+    label: 'Developer', 
+    level: 3, 
+    activeClass: 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-200 shadow-2xs font-semibold', 
+    dotClass: 'bg-emerald-600' 
+  },
+  { 
+    id: 'qa', 
+    label: 'QA', 
+    level: 3, 
+    activeClass: 'bg-amber-50 text-amber-700 border-amber-300 ring-1 ring-amber-200 shadow-2xs font-semibold', 
+    dotClass: 'bg-amber-600' 
+  },
+];
+
 export default function UploadAssetModal({ isOpen, onClose, projectId, onUploadSuccess }) {
   const [activeTab, setActiveTab] = useState('document'); // 'document' or 'repo'
   const [file, setFile] = useState(null);
   const [repoUrl, setRepoUrl] = useState('');
-  const [roleAccess, setRoleAccess] = useState('developer,manager,qa,team_lead');
+  const [selectedRoles, setSelectedRoles] = useState(['manager', 'team_lead', 'developer', 'qa']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const roleAccess = selectedRoles.join(',');
+
+  const handleRoleClick = (roleId) => {
+    if (roleId === 'manager') {
+      // Clicking manager greys out all other roles
+      setSelectedRoles(['manager']);
+      return;
+    }
+
+    if (roleId === 'team_lead') {
+      // Team lead follows after manager: colors manager and team_lead, greys out developer & qa
+      if (selectedRoles.includes('team_lead') && !selectedRoles.includes('developer') && !selectedRoles.includes('qa')) {
+        setSelectedRoles(['manager']);
+      } else {
+        setSelectedRoles(['manager', 'team_lead']);
+      }
+      return;
+    }
+
+    if (roleId === 'developer') {
+      // Developer: colors developer and above roles (manager, team_lead)
+      if (selectedRoles.includes('developer')) {
+        const next = selectedRoles.filter(r => r !== 'developer');
+        setSelectedRoles(next.length ? next : ['manager', 'team_lead']);
+      } else {
+        const next = new Set(selectedRoles);
+        next.add('manager');
+        next.add('team_lead');
+        next.add('developer');
+        setSelectedRoles(Array.from(next));
+      }
+      return;
+    }
+
+    if (roleId === 'qa') {
+      // QA: colors QA and above roles (manager, team_lead)
+      if (selectedRoles.includes('qa')) {
+        const next = selectedRoles.filter(r => r !== 'qa');
+        setSelectedRoles(next.length ? next : ['manager', 'team_lead']);
+      } else {
+        const next = new Set(selectedRoles);
+        next.add('manager');
+        next.add('team_lead');
+        next.add('qa');
+        setSelectedRoles(Array.from(next));
+      }
+      return;
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -101,14 +182,63 @@ export default function UploadAssetModal({ isOpen, onClose, projectId, onUploadS
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Role Access (comma-separated)</label>
-            <input 
-              type="text" 
-              value={roleAccess}
-              onChange={(e) => setRoleAccess(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-              placeholder="developer,manager"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Role Access Hierarchy
+              </label>
+              <span className="text-[11px] text-slate-400 font-medium">
+                {selectedRoles.length === 4 ? 'All team members' : `${selectedRoles.length} of 4 roles`}
+              </span>
+            </div>
+
+            {/* Hierarchical Badges */}
+            <div className="flex flex-wrap gap-2 items-center">
+              {ROLES.map((role) => {
+                const isActive = selectedRoles.includes(role.id);
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() => handleRoleClick(role.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer select-none active:scale-[0.97] ${
+                      isActive
+                        ? role.activeClass
+                        : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        isActive ? role.dotClass : 'bg-slate-300'
+                      }`}
+                    />
+                    <span>{role.label}</span>
+                    <span className="text-[10px] opacity-75 font-normal">
+                      (L{role.level})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Access Summary & Hierarchy Guidance */}
+            <div className="mt-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 text-[11px] text-slate-600 space-y-1">
+              <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                <span>Access:</span>
+                <span className="font-semibold text-slate-900">
+                  {selectedRoles.length === 1 && selectedRoles[0] === 'manager'
+                    ? 'Manager only (Confidential)'
+                    : selectedRoles.length === 4
+                    ? 'All Project Members'
+                    : selectedRoles
+                        .map(r => ROLES.find(item => item.id === r)?.label)
+                        .filter(Boolean)
+                        .join(', ')}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                Hierarchy: Selecting Developer or QA automatically grants access to Team Lead & Manager. Clicking Manager restricts to executive only.
+              </p>
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end gap-3">

@@ -41,6 +41,7 @@ export const documentService = {
     }
     return api.get(url, { responseType: 'text' });
   },
+  getChunkContext: (projectId, chunkId) => api.get(`/projects/${projectId}/documents/chunks/${chunkId}`),
   deleteAsset: (projectId, documentId) => api.delete(`/projects/${projectId}/documents/${documentId}`),
   deleteRepo: (projectId, repoId) => api.delete(`/projects/${projectId}/repos/${repoId}`),
 };
@@ -81,6 +82,69 @@ export const chatService = {
   startSession: (projectId) => api.post(`/projects/${projectId}/chat/session/start`),
   listSessions: (projectId, limit = 50) => api.get(`/projects/${projectId}/chat/sessions/list?limit=${limit}`),
   sendMessage: (projectId, data) => api.post(`/projects/${projectId}/chat/message`, data),
+  streamMessage: async (projectId, data, { onMetadata, onChunk, onDone, onError, signal } = {}) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`/api/projects/${projectId}/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(data),
+        signal
+      });
+
+      if (!response.ok) {
+        let errMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errData = await response.json();
+          errMessage = errData.detail || errData.error || errMessage;
+        } catch {
+          // ignore
+        }
+        throw new Error(errMessage);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          const jsonStr = trimmed.slice(6);
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.type === 'metadata' && onMetadata) onMetadata(parsed);
+            else if (parsed.type === 'chunk' && onChunk) onChunk(parsed.text);
+            else if (parsed.type === 'done' && onDone) onDone(parsed);
+            else if (parsed.type === 'error') {
+              const streamErr = new Error(parsed.error);
+              if (onError) onError(streamErr);
+              throw streamErr;
+            }
+          } catch (jsonErr) {
+            console.warn('Failed to parse SSE payload', jsonErr, jsonStr);
+          }
+        }
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return;
+      }
+      if (onError) onError(err);
+      throw err;
+    }
+  },
   getHistory: (projectId, sessionId, limit = 50) => api.get(`/projects/${projectId}/chat/session/${sessionId}/history?limit=${limit}`),
   touchSession: (projectId, sessionId) => api.patch(`/projects/${projectId}/chat/session/${sessionId}/touch`),
   deleteSession: (projectId, sessionId) => api.delete(`/projects/${projectId}/chat/session/${sessionId}`),

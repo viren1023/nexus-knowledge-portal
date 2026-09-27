@@ -120,7 +120,7 @@ class SearchResponse(BaseModel):
 
 # ----- Chat Schemas -----
 class ChatMessageRequest(BaseModel):
-    session_id: UUID
+    session_id: Optional[UUID] = None
     message: str
 
 class ChatSource(BaseModel):

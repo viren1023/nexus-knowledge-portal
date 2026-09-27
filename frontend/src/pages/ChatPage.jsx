@@ -62,7 +62,7 @@ export default function ChatPage() {
   }, [projectId]);
 
   // Fetch sessions for the active project
-  const fetchSessions = useCallback(async (autoSelectFirst = false) => {
+  const fetchSessions = useCallback(async () => {
     if (!projectId) return;
 
     setLoadingSessions(true);
@@ -71,14 +71,9 @@ export default function ChatPage() {
       const sessionList = res.data.sessions || [];
       setSessions(sessionList);
 
-      if (sessionList.length > 0) {
-        // If no session selected or current session no longer exists
-        if (!currentSessionId || autoSelectFirst || !sessionList.some(s => s.id === currentSessionId)) {
-          setCurrentSessionId(sessionList[0].id);
-        }
-      } else {
-        // No sessions exist yet, automatically start a new one
-        handleNewSession();
+      // If active session was deleted or invalid, clear selection
+      if (currentSessionId && !sessionList.some(s => s.id === currentSessionId)) {
+        setCurrentSessionId(null);
       }
     } catch (err) {
       console.error('Failed to fetch sessions', err);
@@ -89,29 +84,18 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (projectId) {
-      fetchSessions(true);
+      fetchSessions();
     }
   }, [projectId]);
 
-  const handleNewSession = async () => {
-    if (!projectId) return;
+  // Click "New Chat": simply reset selection to draft state (DO NOT create DB record)
+  const handleNewSession = () => {
+    setCurrentSessionId(null);
+  };
 
-    try {
-      const res = await chatService.startSession(projectId);
-      const newSession = {
-        id: res.data.session_id,
-        session_title: 'New Chat',
-        created_at: res.data.created_at || new Date().toISOString(),
-        last_accessed: res.data.created_at || new Date().toISOString(),
-        message_count: 0,
-        is_pinned: false
-      };
-
-      setSessions(prev => [newSession, ...prev.filter(s => s.id !== newSession.id)]);
-      setCurrentSessionId(newSession.id);
-    } catch (err) {
-      console.error('Failed to start new chat session', err);
-    }
+  const handleSessionCreated = (newId) => {
+    setCurrentSessionId(newId);
+    fetchSessions();
   };
 
   const handleSelectSession = (sessionId) => {
@@ -134,12 +118,7 @@ export default function ChatPage() {
       setSessions(updated);
 
       if (currentSessionId === sessionId) {
-        if (updated.length > 0) {
-          setCurrentSessionId(updated[0].id);
-        } else {
-          // If all sessions deleted, create a new one
-          handleNewSession();
-        }
+        setCurrentSessionId(null);
       }
     } catch (err) {
       console.error('Failed to delete session', err);
@@ -231,7 +210,8 @@ export default function ChatPage() {
           projectId={projectId}
           sessionId={currentSessionId}
           currentSession={currentSession}
-          onSessionUpdated={() => fetchSessions(false)}
+          onSessionCreated={handleSessionCreated}
+          onSessionUpdated={() => fetchSessions()}
         />
       </div>
     </div>

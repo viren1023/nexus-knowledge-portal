@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from uuid import UUID
 from datetime import datetime
 import uuid
+import json
+import logging
+import time
 
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.models.chat import ChatSession, ChatHistory, SuggestedTask
 from app.models.document import Document, DocumentChunk
 from app.models.asset import GitRepo, ReusableAsset
@@ -14,7 +17,7 @@ from app.models.task import Task
 from app.schemas import ChatMessageRequest, ChatMessageResponse, ChatSessionStartResponse
 from app.services.chat.intent_classifier import classify_intent
 from app.services.chat.context_retriever import retrieve_context
-from app.services.chat.response_generator import generate_response_for_chat
+from app.services.chat.response_generator import generate_response_for_chat, stream_response_for_chat
 from app.services.chat.task_tool import (
     extract_task_draft,
     update_task_draft,
@@ -23,6 +26,8 @@ from app.services.chat.task_tool import (
     get_pending_task
 )
 from app.api.projects import check_project_membership
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/projects/{project_id}/chat", tags=["AI Chatbot"])
 
@@ -89,14 +94,19 @@ def build_enhanced_sources(context: dict, sources_list: list = None) -> list:
         seen.add(key)
         
         cid = f"citation_{len(enhanced) + 1}"
+        citation_num = len(enhanced) + 1
+        raw_content = r.get("content") or r.get("snippet", "")
         entry = {
             "id": cid,
             "type": source_type,
             "source_id": source_id,
             "name": r.get("title") or r.get("source") or "Source",
             "details": {
+                "citation_index": citation_num,
                 "relevance_score": float(r.get("relevance_score", 0.8)),
-                "excerpt": r.get("snippet", "")
+                "excerpt": r.get("snippet", ""),
+                "context": raw_content,
+                "content": raw_content
             }
         }
         
@@ -142,7 +152,8 @@ async def list_sessions(
         .filter(
             ChatSession.developer_id == user_id,
             ChatSession.project_id == project_id,
-            ChatSession.archived_at.is_(None)
+            ChatSession.archived_at.is_(None),
+            ChatSession.message_count > 0
         )
         .order_by(
             ChatSession.is_pinned.desc().nullslast(),
@@ -305,9 +316,39 @@ async def send_chat_message(
             "follow_up_suggestions": ["Upload a document", "Link a Git repository", "Create a task"]
         }
         
-    session = db.query(ChatSession).filter(ChatSession.id == chat_data.session_id, ChatSession.project_id == project_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Chat session not found in this project")
+    session_id = chat_data.session_id
+    if not session_id:
+        session_id = uuid.uuid4()
+        now = datetime.utcnow()
+        session = ChatSession(
+            id=session_id,
+            developer_id=user_id,
+            project_id=project_id,
+            user_role=user_role,
+            session_title=None,
+            message_count=0,
+            last_accessed=now,
+            created_at=now
+        )
+        db.add(session)
+        db.commit()
+        chat_data.session_id = session_id
+    else:
+        session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.project_id == project_id).first()
+        if not session:
+            now = datetime.utcnow()
+            session = ChatSession(
+                id=session_id,
+                developer_id=user_id,
+                project_id=project_id,
+                user_role=user_role,
+                session_title=None,
+                message_count=0,
+                last_accessed=now,
+                created_at=now
+            )
+            db.add(session)
+            db.commit()
         
     history_records = db.query(ChatHistory).filter(
         ChatHistory.session_id == chat_data.session_id
@@ -491,6 +532,332 @@ async def send_chat_message(
             "title": session.session_title
         }
     }
+
+@router.post("/stream")
+async def stream_chat_message(
+    project_id: UUID,
+    chat_data: ChatMessageRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    user_id = UUID(request.state.user_id)
+    user_role = request.state.user_role
+    
+    if not check_project_membership(db, user_id, project_id):
+        return JSONResponse({"error": "Not a project member"}, status_code=403)
+
+    session_id = chat_data.session_id
+    if not session_id:
+        session_id = uuid.uuid4()
+        now = datetime.utcnow()
+        session = ChatSession(
+            id=session_id,
+            developer_id=user_id,
+            project_id=project_id,
+            user_role=user_role,
+            session_title=None,
+            message_count=0,
+            last_accessed=now,
+            created_at=now
+        )
+        db.add(session)
+        db.commit()
+    else:
+        session = db.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.project_id == project_id
+        ).first()
+        if not session:
+            now = datetime.utcnow()
+            session = ChatSession(
+                id=session_id,
+                developer_id=user_id,
+                project_id=project_id,
+                user_role=user_role,
+                session_title=None,
+                message_count=0,
+                last_accessed=now,
+                created_at=now
+            )
+            db.add(session)
+            db.commit()
+
+    content_status = check_project_has_content(db, project_id)
+    user_message = (chat_data.message or "").strip()
+
+    # Save user message to history
+    user_record = ChatHistory(
+        session_id=session_id,
+        message_type="user",
+        content=user_message
+    )
+    db.add(user_record)
+    db.commit()
+
+    # If no content in project
+    if not content_status["has_content"]:
+        no_content_msg = (
+            "This project has no indexed content yet. Please:\n\n"
+            "1. Upload documents (PDFs, Word, Markdown)\n"
+            "2. Link Git repositories\n"
+            "3. Create tasks\n\n"
+            "Once content is added, I can help you discover and manage it!"
+        )
+        def no_content_stream():
+            meta = {
+                "type": "metadata",
+                "session_id": str(session_id),
+                "intent": "no_content",
+                "confidence": 1.0,
+                "sources": [],
+                "sources_detailed": []
+            }
+            yield f"data: {json.dumps(meta)}\n\n"
+            yield f"data: {json.dumps({'type': 'chunk', 'text': no_content_msg})}\n\n"
+            
+            with SessionLocal() as sdb:
+                rec = ChatHistory(
+                    session_id=session_id,
+                    message_type="assistant",
+                    content=no_content_msg,
+                    intent="no_content",
+                    confidence=1.0,
+                    sources=[],
+                    sources_detailed=[]
+                )
+                sdb.add(rec)
+                s = sdb.query(ChatSession).filter(ChatSession.id == session_id).first()
+                if s:
+                    s.message_count = (s.message_count or 0) + 2
+                    s.last_accessed = datetime.utcnow()
+                    if not s.session_title:
+                        s.session_title = extract_session_title(user_message)
+                        s.first_message_preview = user_message[:100]
+                sdb.commit()
+                yield f"data: {json.dumps({'type': 'done', 'session_id': str(session_id), 'message_id': str(rec.id), 'full_text': no_content_msg})}\n\n"
+
+        return StreamingResponse(
+            no_content_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
+        )
+
+    # Load history
+    history_records = db.query(ChatHistory).filter(
+        ChatHistory.session_id == session_id
+    ).order_by(ChatHistory.created_at.asc()).all()
+    history = [{"role": r.message_type, "content": r.content} for r in history_records]
+
+    # Intent classification
+    pending_task = get_pending_task(db, session_id)
+    intent = classify_intent(user_message, has_pending_task=bool(pending_task))
+
+    suggested_task_payload = None
+    sources = []
+    sources_detailed = []
+    confidence = 0.85
+    task_response_text = None
+    context = None
+
+    if intent == "task_create":
+        draft = extract_task_draft(db, project_id, user_message, history)
+        if pending_task:
+            pending_task.status = "superseded"
+            db.commit()
+        new_suggestion = SuggestedTask(
+            id=uuid.uuid4(),
+            session_id=session_id,
+            suggested_task=draft,
+            status="pending"
+        )
+        db.add(new_suggestion)
+        db.commit()
+        task_response_text = format_task_preview(draft, is_update=False)
+        suggested_task_payload = {
+            "id": str(new_suggestion.id),
+            "status": "pending",
+            "task": draft
+        }
+    elif intent == "task_confirm":
+        if pending_task:
+            draft = pending_task.suggested_task
+            created_task = execute_create_task(db, project_id, user_id, session_id, draft)
+            assignee_name = created_task.assignee.name if created_task.assignee else "Unassigned"
+            due_str = str(created_task.due_date) if created_task.due_date else "None"
+            task_response_text = (
+                f"✅ **Task Created Successfully!**\n\n"
+                f"• **Title:** {created_task.title}\n"
+                f"• **Status:** `{created_task.status}`\n"
+                f"• **Priority:** `{created_task.priority.upper()}`\n"
+                f"• **Assignee:** {assignee_name}\n"
+                f"• **Due Date:** {due_str}\n\n"
+                f"The task is now live on your project board."
+            )
+            suggested_task_payload = {
+                "id": str(pending_task.id),
+                "status": "confirmed",
+                "task_id": str(created_task.id),
+                "task": draft
+            }
+        else:
+            task_response_text = "There is no pending task to confirm. What task would you like to create?"
+    elif intent == "task_update":
+        if pending_task:
+            current_draft = pending_task.suggested_task
+            updated_draft = update_task_draft(db, project_id, current_draft, user_message)
+            pending_task.suggested_task = updated_draft
+            db.commit()
+            task_response_text = format_task_preview(updated_draft, is_update=True)
+            suggested_task_payload = {
+                "id": str(pending_task.id),
+                "status": "pending",
+                "task": updated_draft
+            }
+        else:
+            draft = extract_task_draft(db, project_id, user_message, history)
+            new_suggestion = SuggestedTask(
+                id=uuid.uuid4(),
+                session_id=session_id,
+                suggested_task=draft,
+                status="pending"
+            )
+            db.add(new_suggestion)
+            db.commit()
+            task_response_text = format_task_preview(draft, is_update=False)
+            suggested_task_payload = {
+                "id": str(new_suggestion.id),
+                "status": "pending",
+                "task": draft
+            }
+    elif intent == "task_cancel":
+        if pending_task:
+            pending_task.status = "rejected"
+            db.commit()
+            task_response_text = "❌ **Task draft cancelled.** Let me know if you want to create a different task or need anything else!"
+            suggested_task_payload = {
+                "id": str(pending_task.id),
+                "status": "rejected"
+            }
+        else:
+            task_response_text = "There is no pending task to cancel. How else can I help you?"
+    else:
+        # Knowledge QA / Asset Search / Project Overview
+        context = retrieve_context(db, str(project_id), intent, user_message, user_role)
+        sources_detailed = build_enhanced_sources(context)
+        sources = [
+            {"id": s.get("source_id", s.get("id", "")), "type": s.get("type", "document"), "title": s.get("name", "Source")}
+            for s in sources_detailed
+        ]
+
+    def event_stream():
+        accumulated_text = ""
+        assistant_record_id = uuid.uuid4()
+        saved = False
+
+        try:
+            # 1. Send metadata event immediately
+            meta_event = {
+                "type": "metadata",
+                "session_id": str(session_id),
+                "intent": intent,
+                "confidence": confidence,
+                "sources": sources,
+                "sources_detailed": sources_detailed,
+                "suggested_task": suggested_task_payload
+            }
+            yield f"data: {json.dumps(meta_event)}\n\n"
+
+            if task_response_text is not None:
+                accumulated_text = task_response_text
+                words = task_response_text.split(" ")
+                for i, w in enumerate(words):
+                    chunk = w + (" " if i < len(words) - 1 else "")
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+                    time.sleep(0.015)
+            else:
+                for chunk in stream_response_for_chat(intent, context, user_message, history):
+                    accumulated_text += chunk
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+
+            # 2. Persist assistant response to DB
+            with SessionLocal() as sdb:
+                record = ChatHistory(
+                    id=assistant_record_id,
+                    session_id=session_id,
+                    message_type="assistant",
+                    content=accumulated_text,
+                    intent=intent,
+                    confidence=confidence,
+                    sources=sources,
+                    sources_detailed=sources_detailed,
+                    metadata_={
+                        "intent": intent,
+                        "sources": sources,
+                        "sources_detailed": sources_detailed,
+                        "confidence": confidence,
+                        "suggested_task": suggested_task_payload
+                    }
+                )
+                sdb.add(record)
+                s = sdb.query(ChatSession).filter(ChatSession.id == session_id).first()
+                if s:
+                    s.message_count = (s.message_count or 0) + 2
+                    s.last_accessed = datetime.utcnow()
+                    if not s.session_title:
+                        s.session_title = extract_session_title(user_message)
+                        s.first_message_preview = user_message[:100]
+                sdb.commit()
+                saved = True
+
+            # 3. Send done event
+            yield f"data: {json.dumps({'type': 'done', 'session_id': str(session_id), 'message_id': str(assistant_record_id), 'full_text': accumulated_text})}\n\n"
+
+        except GeneratorExit:
+            logger.info(f"Stream interrupted by client for session {session_id}. Preserving partial response ({len(accumulated_text)} chars)")
+            if not saved and accumulated_text.strip():
+                try:
+                    with SessionLocal() as sdb:
+                        record = ChatHistory(
+                            id=assistant_record_id,
+                            session_id=session_id,
+                            message_type="assistant",
+                            content=accumulated_text,
+                            intent=intent,
+                            confidence=confidence,
+                            sources=sources,
+                            sources_detailed=sources_detailed,
+                            metadata_={
+                                "intent": intent,
+                                "interrupted": True,
+                                "sources": sources,
+                                "sources_detailed": sources_detailed
+                            }
+                        )
+                        sdb.add(record)
+                        s = sdb.query(ChatSession).filter(ChatSession.id == session_id).first()
+                        if s:
+                            s.message_count = (s.message_count or 0) + 2
+                            s.last_accessed = datetime.utcnow()
+                            if not s.session_title:
+                                s.session_title = extract_session_title(user_message)
+                                s.first_message_preview = user_message[:100]
+                        sdb.commit()
+                except Exception as save_err:
+                    logger.error(f"Failed to save interrupted chat response: {save_err}")
+            raise
+        except Exception as e:
+            logger.error(f"Error during streaming: {e}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 @router.get("/session/{session_id}/history")
 async def get_chat_history(

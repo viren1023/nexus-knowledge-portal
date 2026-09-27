@@ -25,7 +25,7 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 px-4 sm:px-6 py-2.5 bg-white border-b border-slate-200 shadow-2xs shrink-0">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 px-4 sm:px-6 py-2.5 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs shrink-0">
       <div className="flex items-center gap-3 min-w-0">
         {backTo && (
           <button
@@ -39,18 +39,26 @@ export default function Header({
           </button>
         )}
 
-        <div className="min-w-0">
-          <div 
-            onClick={() => navigate('/')} 
-            className="text-base font-bold text-slate-900 truncate cursor-pointer hover:text-indigo-600 transition-colors"
-          >
-            Project Knowledge
+        <div 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+        >
+          <div className="size-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-2xs group-hover:bg-indigo-700 transition-colors">
+            <svg className="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </div>
-          {(subTitle || projectName) && (
-            <div className="text-xs text-slate-500 truncate">
-              {subTitle || `Projects / ${projectName}`}
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors tracking-tight flex items-center gap-1.5">
+              <span>Nexus</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded hidden sm:inline">Portal</span>
             </div>
-          )}
+            {(subTitle || projectName) && (
+              <div className="text-[11px] text-slate-400 truncate max-w-48 sm:max-w-xs">
+                {subTitle || projectName}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       

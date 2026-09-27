@@ -21,16 +21,10 @@ export default function ProjectChat({ projectId }) {
     }
   }, [messages, isOpen]);
 
-  const handleOpen = async () => {
+  const handleOpen = () => {
     setIsOpen(true);
-    if (!sessionId) {
-      try {
-        const res = await chatService.startSession(projectId);
-        setSessionId(res.data.session_id);
-        setMessages([{ type: 'assistant', content: "Hello! Ask me anything about this project's documentation, tasks, or code assets." }]);
-      } catch (err) {
-        console.error('Failed to start chat session', err);
-      }
+    if (messages.length === 0) {
+      setMessages([{ type: 'assistant', content: "Hello! Ask me anything about this project's documentation, tasks, or code assets." }]);
     }
   };
 
@@ -38,21 +32,28 @@ export default function ProjectChat({ projectId }) {
     const openChat = () => handleOpen();
     window.addEventListener('open-project-chat', openChat);
     return () => window.removeEventListener('open-project-chat', openChat);
-  }, [sessionId, projectId]);
+  }, [projectId]);
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim() || !sessionId) return;
+    if (!input.trim() || loading) return;
 
     const userMessage = { type: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
+    let activeSessionId = sessionId;
     try {
+      if (!activeSessionId) {
+        const res = await chatService.startSession(projectId);
+        activeSessionId = res.data.session_id;
+        setSessionId(activeSessionId);
+      }
+
       const res = await chatService.sendMessage(projectId, {
-        session_id: sessionId,
-        message: input,
+        session_id: activeSessionId,
+        message: userMessage.content,
         previous_context: true
       });
       
@@ -172,21 +173,7 @@ export default function ProjectChat({ projectId }) {
                     </div>
                   )}
 
-                  {/* Follow-up Suggestions */}
-                  {msg.follow_ups && msg.follow_ups.length > 0 && idx === messages.length - 1 && (!msg.suggested_task || msg.suggested_task.status !== 'pending') && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex gap-1.5 flex-wrap">
-                      {msg.follow_ups.map((suggestion, sIdx) => (
-                        <button
-                          key={sIdx}
-                          type="button"
-                          onClick={() => sendQuickResponse(suggestion)}
-                          className="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 border border-slate-200 text-slate-600 text-xs px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+
 
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-500 space-y-1">

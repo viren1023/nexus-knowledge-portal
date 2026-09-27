@@ -47,6 +47,24 @@ def generate_response(prompt: str, model: str = "mistral:7b", system: str = None
         logger.error(f"Error generating response with model {model}: {str(e)}")
         raise e
 
+def generate_response_stream(prompt: str, model: str = "mistral:7b", system: str = None):
+    """
+    Generate a streaming response from Ollama yielding token chunks.
+    """
+    try:
+        options = {}
+        if system:
+            options['system'] = system
+            
+        stream = ollama_client.generate(model=model, prompt=prompt, options=options, stream=True)
+        for chunk in stream:
+            token = chunk.get('response', '')
+            if token:
+                yield token
+    except Exception as e:
+        logger.error(f"Error streaming response with model {model}: {str(e)}")
+        raise e
+
 def describe_image(image_path: str, prompt: str, model: str = "llava:7b") -> str:
     """
     Describe an image using Ollama's vision model.

@@ -1,20 +1,21 @@
 import logging
-from typing import Dict, Any, Tuple, List
-from app.utils.ollama_client import generate_response
+from typing import Dict, Any, Tuple, List, Generator
+from app.utils.ollama_client import generate_response, generate_response_stream
 
 logger = logging.getLogger(__name__)
 
-def generate_response_for_chat(intent: str, context: Dict[str, Any], user_message: str, history: List[Dict]) -> Tuple[str, float, List[Dict]]:
+def build_chat_prompt(intent: str, context: Dict[str, Any], user_message: str, history: List[Dict]) -> Tuple[str, float, List[Dict]]:
     """
-    Generate response using Ollama based on intent and retrieved context.
-    Returns: (response_text, confidence_score, sources_list)
+    Construct system prompt, context string, and user prompt based on intent and retrieved context.
+    Returns: (prompt, confidence_score, sources_list)
     """
     sources = []
 
     # Build detailed context string (use up to 8 results, full snippets)
     context_str = ""
-    if context["raw_results"]:
-        for idx, r in enumerate(context["raw_results"][:8]):
+    raw_results = context.get("raw_results", []) if isinstance(context, dict) else []
+    if raw_results:
+        for idx, r in enumerate(raw_results[:8]):
             context_str += (
                 f"[{idx+1}] Type: {r['type']} | Source: {r['title']}\n"
                 f"Relevance: {r['relevance_score']:.2f}\n"
@@ -27,7 +28,7 @@ def generate_response_for_chat(intent: str, context: Dict[str, Any], user_messag
             })
 
     has_context = bool(context_str.strip())
-    history_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])
+    history_str = "\n".join([f"{msg.get('role', msg.get('message_type', 'user'))}: {msg.get('content', '')}" for msg in history[-5:]])
 
     # Select system prompt based on intent
     if not has_context:
@@ -89,13 +90,32 @@ def generate_response_for_chat(intent: str, context: Dict[str, Any], user_messag
         )
 
     prompt = f"{sys_prompt}\n\nUser: {user_message}\nAssistant:"
+    confidence = 0.85 if has_context else 0.4
+    return prompt, confidence, sources
 
+def generate_response_for_chat(intent: str, context: Dict[str, Any], user_message: str, history: List[Dict]) -> Tuple[str, float, List[Dict]]:
+    """
+    Generate response using Ollama based on intent and retrieved context.
+    Returns: (response_text, confidence_score, sources_list)
+    """
+    prompt, confidence, sources = build_chat_prompt(intent, context, user_message, history)
     try:
         res = generate_response(prompt, model="mistral:7b")
         response = res['response']
-        confidence = 0.85 if has_context else 0.4
-        logger.info(f"Response generated. Sources used: {len(sources)}, has_context: {has_context}")
+        logger.info(f"Response generated. Sources used: {len(sources)}")
         return response, confidence, sources
     except Exception as e:
         logger.error(f"Failed to generate response: {e}", exc_info=True)
         return "I'm sorry, I encountered an error generating a response. Please try again.", 0.0, []
+
+def stream_response_for_chat(intent: str, context: Dict[str, Any], user_message: str, history: List[Dict]) -> Generator[str, None, None]:
+    """
+    Yields chunks of text as they arrive from Ollama.
+    """
+    prompt, _, _ = build_chat_prompt(intent, context, user_message, history)
+    try:
+        for chunk in generate_response_stream(prompt, model="mistral:7b"):
+            yield chunk
+    except Exception as e:
+        logger.error(f"Failed to stream response: {e}", exc_info=True)
+        yield "\n\nI'm sorry, I encountered an error while generating the response. Please try again."
