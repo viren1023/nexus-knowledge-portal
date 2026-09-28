@@ -1,0 +1,70 @@
+{
+  "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+  "tokens": {
+    "bench_pm": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmQ1ZDQwODYtZmExYS00ZTQ0LWIwNzgtNDEwNmMxMzg3MmZkIiwiZW1haWwiOiJiZW5jaF9wbUBhdXJvcmEuaW50ZXJuYWwiLCJyb2xlIjoibWFuYWdlciIsImV4cCI6MTc5MDU4NDE4M30.99L99F_58ALyjShfz68t5PvTS5CNxltJb4qilGoNoPQ",
+    "bench_lead": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYzM3M2E0NTAtZGZhOC00ZTEwLTk0OWItODQ4YjQ1MGZhYWVkIiwiZW1haWwiOiJiZW5jaF9sZWFkQGF1cm9yYS5pbnRlcm5hbCIsInJvbGUiOiJ0ZWFtX2xlYWQiLCJleHAiOjE3OTA1ODQxODN9.kmIKSSlQNKM2Zem-UU7JNnNv-jo9xPtHdTbo6JkR-_s",
+    "bench_dev1": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNWUyYTkwMTktNTgyYi00ZDI0LTgwMjUtZDM0Y2Q1ZGQzZmIzIiwiZW1haWwiOiJiZW5jaF9kZXYxQGF1cm9yYS5pbnRlcm5hbCIsInJvbGUiOiJkZXZlbG9wZXIiLCJleHAiOjE3OTA1ODQxODN9._8-oBKxd9zu0k5y-eZJiKs9_577hYsQ5IoSbo46XxN4",
+    "bench_dev2": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDkxM2IxMTYtZGNlZS00MzMwLWFhZDQtZDA4NjA5OTUxN2VkIiwiZW1haWwiOiJiZW5jaF9kZXYyQGF1cm9yYS5pbnRlcm5hbCIsInJvbGUiOiJkZXZlbG9wZXIiLCJleHAiOjE3OTA1ODQxODN9.RjsEU13HM0PnnXeAgBwSDdhw5WdFE2euHCesQRWVj3E",
+    "bench_qa": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTEyZDk1ZjktMTVlMC00ODc1LTgzNWYtYTk5YzljZmY0YjVkIiwiZW1haWwiOiJiZW5jaF9xYUBhdXJvcmEuaW50ZXJuYWwiLCJyb2xlIjoicWEiLCJleHAiOjE3OTA1ODQxODN9.mdLojcG43p0MVpqOZ8sSvRRaCuUqlQKY7Ih8SZg2hH4"
+  },
+  "user_ids": {
+    "bench_pm": "2d5d4086-fa1a-4e44-b078-4106c13872fd",
+    "bench_lead": "c373a450-dfa8-4e10-949b-848b450faaed",
+    "bench_dev1": "5e2a9019-582b-4d24-8025-d34cd5dd3fb3",
+    "bench_dev2": "0913b116-dcee-4330-aad4-d086099517ed",
+    "bench_qa": "912d95f9-15e0-4875-835f-a99c9cff4b5d"
+  },
+  "base_url": "http://localhost:8005",
+  "uploaded_docs": {
+    "project_charter_aurora.md": {
+      "document_id": "5cf81a16-1e61-4f9c-a124-aff53c319a84",
+      "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+      "file_name": "project_charter_aurora.md",
+      "status": "pending",
+      "message": "Document queued for processing",
+      "job_id": "0d1064ae-34d9-46ca-b629-43da997015ed"
+    },
+    "architecture_decisions_aurora.md": {
+      "document_id": "d6a5a55a-f755-4c44-ab2d-66bfe01dab41",
+      "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+      "file_name": "architecture_decisions_aurora.md",
+      "status": "pending",
+      "message": "Document queued for processing",
+      "job_id": "59553f41-55cd-4a69-ad03-26b1751e9fdf"
+    },
+    "sprint_14_notes.md": {
+      "document_id": "f639277f-e349-40a5-bda4-898687908f68",
+      "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+      "file_name": "sprint_14_notes.md",
+      "status": "pending",
+      "message": "Document queued for processing",
+      "job_id": "16ccd14f-fc86-4523-8479-3af8f8753b96"
+    },
+    "sprint_15_notes.md": {
+      "document_id": "07d7e70e-ca12-447f-b454-869885ab8c2f",
+      "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+      "file_name": "sprint_15_notes.md",
+      "status": "pending",
+      "message": "Document queued for processing",
+      "job_id": "17d292df-d501-4767-9489-dc192ab9e08d"
+    },
+    "developer_workflow_standards.md": {
+      "document_id": "7e5e22cb-2522-4054-9593-d7f0d27f8eed",
+      "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+      "file_name": "developer_workflow_standards.md",
+      "status": "pending",
+      "message": "Document queued for processing",
+      "job_id": "f4d7ce01-6f40-4285-8a1f-de69006c8706"
+    },
+    "executive_onboarding_compensation.md": {
+      "document_id": "06a92e3c-3ba8-4f0f-8427-2410556bc756",
+      "project_id": "48ad3e04-3d49-4803-811f-4699dcf8e7d7",
+      "file_name": "executive_onboarding_compensation.md",
+      "status": "pending",
+      "message": "Document queued for processing",
+      "job_id": "bac26bb8-736b-4643-951d-8f328d0f59bf"
+    }
+  },
+  "tasks_count": 9,
+  "seeded_at": "2026-09-27T08:30:04Z"
+}

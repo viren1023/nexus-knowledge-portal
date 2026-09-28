@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nexus AI Benchmark Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; background: #f8fafc; padding: 32px 16px; margin: 0; }
+    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+    h1 { color: #0f172a; margin-top: 0; }
+    h2 { color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 32px; }
+    .critical-banner { background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 20px; margin: 24px 0; color: #991b1b; }
+    .clean-banner { background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 16px; margin: 24px 0; color: #166534; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    th, td { padding: 10px 14px; border: 1px solid #e2e8f0; text-align: left; }
+    th { background: #f8fafc; font-weight: 600; }
+    .badge-pass { background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
+    .badge-fail { background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    pre { background: #0f172a; color: #f8fafc; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ Nexus AI Benchmark & Gap-Analysis Report</h1>
+    <p><strong>Generated:</strong> 2026-09-27T08:39:43Z | <strong>Total Duration:</strong> 578.85s | <strong>Project:</strong> <code>48ad3e04-3d49-4803-811f-4699dcf8e7d7</code></p>
+
+    <div class="clean-banner">✅ Security & Access Control: CLEAN — Zero data leaks detected across role boundaries.</div>
+
+    <h2>📊 Overall Scorecard: 63.6% Pass Rate</h2>
+    <table>
+      <tr><th>Category</th><th>Total</th><th>Passed</th><th>Failed</th><th>Pass Rate</th><th>Avg Latency</th></tr>
+      <tr><td><code>access_control</code></td><td>5</td><td>5</td><td>0</td><td><strong>100.0%</strong></td><td>13529.9ms</td></tr><tr><td><code>asset_search</code></td><td>4</td><td>3</td><td>1</td><td><strong>75.0%</strong></td><td>31002.5ms</td></tr><tr><td><code>edge_cases</code></td><td>3</td><td>0</td><td>3</td><td><strong>0.0%</strong></td><td>40165.5ms</td></tr><tr><td><code>ingestion</code></td><td>2</td><td>2</td><td>0</td><td><strong>100.0%</strong></td><td>27.1ms</td></tr><tr><td><code>knowledge_qa</code></td><td>7</td><td>2</td><td>5</td><td><strong>28.6%</strong></td><td>24022.1ms</td></tr><tr><td><code>project_summary</code></td><td>2</td><td>1</td><td>1</td><td><strong>50.0%</strong></td><td>18710.9ms</td></tr><tr><td><code>search</code></td><td>4</td><td>4</td><td>0</td><td><strong>100.0%</strong></td><td>50.4ms</td></tr><tr><td><code>task_management</code></td><td>6</td><td>4</td><td>2</td><td><strong>66.7%</strong></td><td>9451.1ms</td></tr>
+    </table>
+
+    <h2>🎯 Confidence Score Calibration</h2>
+    <table>
+      <tr><th>Confidence Tier</th><th>Count</th><th>Passed</th><th>Accuracy</th></tr>
+      <tr><td>0.0 - 0.50 (Low)</td><td>0</td><td>0</td><td><strong>0.0%</strong></td></tr><tr><td>0.50 - 0.70 (Moderate)</td><td>0</td><td>0</td><td><strong>0.0%</strong></td></tr><tr><td>0.70 - 0.85 (High)</td><td>0</td><td>0</td><td><strong>0.0%</strong></td></tr><tr><td>0.85 - 1.00 (Very High)</td><td>27</td><td>15</td><td><strong>55.6%</strong></td></tr>
+    </table>
+
+    <h2>⚡ Latency Distribution (ms)</h2>
+    <table>
+      <tr><th>Intent</th><th>Count</th><th>p50</th><th>p95</th><th>Min</th><th>Max</th></tr>
+      <tr><td><code>knowledge_qa</code></td><td>7</td><td>6877.5ms</td><td>11647.7ms</td><td>3680.5ms</td><td>11647.7ms</td></tr><tr><td><code>project_overview</code></td><td>2</td><td>43885.7ms</td><td>46237.7ms</td><td>41533.6ms</td><td>46237.7ms</td></tr><tr><td><code>asset_search</code></td><td>4</td><td>30745.2ms</td><td>49429.7ms</td><td>13090.0ms</td><td>49429.7ms</td></tr><tr><td><code>task_query</code></td><td>10</td><td>16327.5ms</td><td>70163.2ms</td><td>2876.9ms</td><td>70163.2ms</td></tr><tr><td><code>other</code></td><td>6</td><td>41.7ms</td><td>60.8ms</td><td>24.6ms</td><td>60.8ms</td></tr><tr><td><code>project_summary</code></td><td>2</td><td>18710.9ms</td><td>28967.8ms</td><td>8454.0ms</td><td>28967.8ms</td></tr><tr><td><code>task_create</code></td><td>1</td><td>9390.5ms</td><td>9390.5ms</td><td>9390.5ms</td><td>9390.5ms</td></tr><tr><td><code>task_cancel</code></td><td>1</td><td>11967.7ms</td><td>11967.7ms</td><td>11967.7ms</td><td>11967.7ms</td></tr>
+    </table>
+
+    <h2>🔍 Actionable Gaps Summary</h2>
+    <ul>
+      <li>**Intent Classifier Drift**: 8 queries were routed to an unexpected intent handler.</li><li>**Over-confidence on Erroneous Answers**: 12 failed queries returned confidence > 0.80.</li>
+    </ul>
+  </div>
+</body>
+</html>

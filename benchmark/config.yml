@@ -1,0 +1,40 @@
+mode: "shadow-stack"
+
+target:
+  base_url: "http://localhost:8005"
+  db_url: "postgresql://nexus_bench:bench_secure_password_isolated_2026@localhost:5435/knowledge_portal_bench"
+  ollama_url: "http://localhost:11434"
+  compose_file: "benchmark/docker-compose.bench.yml"
+
+safety:
+  # Hard-fail guardrails: never allow benchmark to target production or default dev services
+  forbidden_ports:
+    - 5432
+    - 5433
+    - 8000
+    - 6379
+  forbidden_db_names:
+    - "knowledge_portal"
+    - "production"
+    - "prod"
+  allowed_db_substrings:
+    - "bench"
+    - "test"
+  allowed_url_ports:
+    - 8005
+    - 8080
+    - 8888
+
+judge:
+  model: "mistral:7b"
+  temperature: 0.0
+  timeout_seconds: 30
+
+timeouts:
+  ingestion_poll_interval: 2
+  ingestion_max_wait: 120
+  request_timeout: 90
+
+reporting:
+  output_dir: "benchmark/reports"
+  save_raw_responses: true

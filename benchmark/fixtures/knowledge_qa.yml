@@ -1,0 +1,85 @@
+category: "knowledge_qa"
+description: "Factual recall, citations, and confidence score calibration from indexed project docs"
+test_cases:
+  - id: "KQA-01"
+    name: "Throughput and latency targets recall"
+    persona: "bench_dev1"
+    query: "What are the target throughput and alerting latency goals for Project Aurora?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "50,000"
+      - "sub-100"
+    forbidden_terms: []
+    grader_type: "rule_based"
+    min_confidence: 0.70
+
+  - id: "KQA-02"
+    name: "ADR-001 Ingestion buffer decision recall"
+    persona: "bench_lead"
+    query: "Why did we choose Redis Streams over Apache Kafka for the ingestion buffer?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "Redis Streams"
+      - "Kafka"
+    forbidden_terms: []
+    grader_type: "rule_based"
+    min_confidence: 0.75
+
+  - id: "KQA-03"
+    name: "ADR-002 Vector database selection recall"
+    persona: "bench_dev2"
+    query: "Which vector database was chosen in the architecture decisions and why?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "pgvector"
+      - "PostgreSQL"
+    forbidden_terms: []
+    grader_type: "rule_based"
+    min_confidence: 0.75
+
+  - id: "KQA-04"
+    name: "Project key milestones and budget recall"
+    persona: "bench_pm"
+    query: "What is the total budget and the target date for the Phase 1 Beta release?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "420,000"
+      - "November 15, 2026"
+    forbidden_terms: []
+    grader_type: "rule_based"
+    min_confidence: 0.75
+
+  - id: "KQA-05"
+    name: "Citation grounded verification"
+    persona: "bench_lead"
+    query: "What anomaly detection algorithm was chosen in ADR-003?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "Welford"
+      - "Z-score"
+    expected_citations:
+      - "architecture_decisions_aurora"
+    grader_type: "rule_based"
+    min_confidence: 0.75
+
+  - id: "KQA-06"
+    name: "Confidence calibration - unanswerable query control"
+    persona: "bench_dev1"
+    query: "What brand of coffee machine is installed in the Aurora breakroom on floor 3?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts: []
+    grader_type: "rule_based"
+    max_confidence: 0.65
+    notes: "Must indicate lack of information and have low confidence score"
+
+  - id: "KQA-07"
+    name: "Multi-turn context continuity"
+    persona: "bench_dev1"
+    query: "Who is the executive sponsor for Aurora?"
+    follow_up_query: "What is his official title?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "Marcus Vance"
+      - "Chief Technology Officer"
+    grader_type: "rule_based"
+    min_confidence: 0.70

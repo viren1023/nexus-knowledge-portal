@@ -1,0 +1,64 @@
+category: "task_management"
+description: "Tests task queries, overdue reasoning, assignment lookups, and confirmation gating"
+test_cases:
+  - id: "TSK-01"
+    name: "Identify overdue tasks"
+    persona: "bench_pm"
+    query: "What tasks are currently overdue?"
+    intent_expected: "task_query"
+    expected_answer_facts:
+      - "TASK-101"
+      - "HMAC-SHA256"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "TSK-02"
+    name: "Query tasks in review state"
+    persona: "bench_lead"
+    query: "Which tasks are currently in review status?"
+    intent_expected: "task_query"
+    expected_answer_facts:
+      - "TASK-102"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "TSK-03"
+    name: "Query tasks by assignee"
+    persona: "bench_lead"
+    query: "Show me all tasks assigned to Devon Reed"
+    intent_expected: "task_query"
+    expected_answer_facts:
+      - "TASK-101"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "TSK-04"
+    name: "Query task ownership by title"
+    persona: "bench_qa"
+    query: "Who owns the task for Prometheus metrics exporter?"
+    intent_expected: "task_query"
+    expected_answer_facts:
+      - "Sara Chen"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "TSK-05"
+    name: "Task creation draft parsing"
+    persona: "bench_pm"
+    query: "Create a task to implement circuit breaker for downstream webhooks with high priority due on 2026-11-25"
+    intent_expected: "task_create"
+    expected_answer_facts:
+      - "circuit breaker"
+      - "high"
+    grader_type: "rule_based"
+
+  - id: "TSK-06"
+    name: "Confirmation step gating persistence"
+    persona: "bench_pm"
+    query: "Create a task to test unconfirmed rejection"
+    cancel_message: "Cancel"
+    intent_expected: "task_cancel"
+    expected_answer_facts:
+      - "cancel"
+    grader_type: "rule_based"
+    notes: "Must NOT persist the task to project board after cancellation"

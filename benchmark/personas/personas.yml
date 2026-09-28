@@ -1,0 +1,52 @@
+personas:
+  - id: "bench_pm"
+    name: "Patricia Moore"
+    email: "bench_pm@aurora.internal"
+    role: "manager"
+    skills:
+      - "product_management"
+      - "strategic_planning"
+      - "stakeholder_alignment"
+    description: "Product Manager with access to all documents including manager-only confidential charters and compensation."
+
+  - id: "bench_lead"
+    name: "Leonard Thorne"
+    email: "bench_lead@aurora.internal"
+    role: "team_lead"
+    skills:
+      - "architecture"
+      - "python"
+      - "fastapi"
+      - "system_design"
+    description: "Technical Lead who oversees tasks, architecture, and code assets."
+
+  - id: "bench_dev1"
+    name: "Devon Reed"
+    email: "bench_dev1@aurora.internal"
+    role: "developer"
+    skills:
+      - "python"
+      - "postgresql"
+      - "redis"
+      - "docker"
+    description: "Senior Backend Developer working on core metrics and database layer."
+
+  - id: "bench_dev2"
+    name: "Sara Chen"
+    email: "bench_dev2@aurora.internal"
+    role: "developer"
+    skills:
+      - "react"
+      - "javascript"
+      - "rest_api"
+    description: "Frontend and integrations developer."
+
+  - id: "bench_qa"
+    name: "Quinn Adams"
+    email: "bench_qa@aurora.internal"
+    role: "qa"
+    skills:
+      - "test_automation"
+      - "load_testing"
+      - "pytest"
+    description: "QA Engineer focusing on test coverage, regression testing, and bug tracking."

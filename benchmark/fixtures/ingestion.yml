@@ -1,0 +1,24 @@
+category: "ingestion"
+description: "Evaluates AST code extraction and README chunking accuracy against source code ground truth"
+test_cases:
+  - id: "ING-01"
+    name: "Python AST signature extraction"
+    persona: "bench_dev1"
+    endpoint: "assets"
+    expected_extracted_symbols:
+      - "verify_hmac_signature"
+      - "calculate_percentile"
+      - "detect_anomalies_zscore"
+      - "welford_update"
+      - "dispatch_alert"
+    grader_type: "rule_based"
+
+  - id: "ING-02"
+    name: "README section-aware chunking"
+    persona: "bench_lead"
+    endpoint: "documents"
+    expected_chunk_sections:
+      - "Architecture Overview"
+      - "Key Modules"
+      - "Configuration"
+    grader_type: "rule_based"

@@ -1,0 +1,28 @@
+category: "project_summary"
+description: "High-level project summarization evaluated against ground truth project charter"
+test_cases:
+  - id: "SUM-01"
+    name: "Comprehensive project overview consistency"
+    persona: "bench_pm"
+    query: "Provide an executive summary of Project Aurora: goals, key components, and target timeline."
+    intent_expected: "project_overview"
+    expected_answer_facts:
+      - "Aurora"
+      - "telemetry"
+      - "50,000"
+    forbidden_terms:
+      - "Kafka"  # Was explicitly rejected in ADR-001
+      - "Pinecone"  # Was explicitly rejected in ADR-002
+    grader_type: "llm_judge"
+    judge_rubric: "Answer must accurately summarize Aurora as a telemetry alerting engine, mention throughput target or Redis Streams, and must not hallucinate that Kafka or Pinecone are used."
+
+  - id: "SUM-02"
+    name: "Architectural components summary"
+    persona: "bench_lead"
+    query: "Summarize the architectural storage components chosen for Project Aurora."
+    intent_expected: "project_summary"
+    expected_answer_facts:
+      - "Redis Streams"
+      - "PostgreSQL"
+    forbidden_terms: []
+    grader_type: "rule_based"

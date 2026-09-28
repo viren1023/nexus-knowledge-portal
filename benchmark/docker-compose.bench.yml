@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  postgres-bench:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: nexus-postgres-bench
+    restart: "no"
+    environment:
+      POSTGRES_USER: nexus_bench
+      POSTGRES_PASSWORD: bench_secure_password_isolated_2026
+      POSTGRES_DB: knowledge_portal_bench
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_bench_data:/var/lib/postgresql
+      - ../backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nexus-bench-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus_bench -d knowledge_portal_bench"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis-bench:
+    image: redis:7-alpine
+    container_name: nexus-redis-bench
+    restart: "no"
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_bench_data:/data
+    networks:
+      - nexus-bench-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  fastapi-backend-bench:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: nexus-backend-bench
+    restart: "no"
+    environment:
+      DB_USER: nexus_bench
+      DB_PASSWORD: bench_secure_password_isolated_2026
+      DB_HOST: postgres-bench
+      DB_PORT: 5432
+      DB_NAME: knowledge_portal_bench
+      DATABASE_URL: postgresql://nexus_bench:bench_secure_password_isolated_2026@postgres-bench:5432/knowledge_portal_bench
+      REDIS_HOST: redis-bench
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis-bench:6379/0
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      JWT_SECRET: nexus-benchmark-secret-key-isolated-2026
+      PGVECTOR_ENABLED: "true"
+      ENVIRONMENT: benchmark
+    ports:
+      - "8005:8000"
+    volumes:
+      - ../backend:/app
+      - uploads_bench:/app/uploads
+      - ./:/benchmark:ro
+    depends_on:
+      postgres-bench:
+        condition: service_healthy
+      redis-bench:
+        condition: service_healthy
+    networks:
+      - nexus-bench-network
+
+  fastapi-worker-bench:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: nexus-worker-bench
+    restart: "no"
+    command: ["rq", "worker", "ingestion", "-u", "redis://redis-bench:6379/0"]
+    environment:
+      DB_USER: nexus_bench
+      DB_PASSWORD: bench_secure_password_isolated_2026
+      DB_HOST: postgres-bench
+      DB_PORT: 5432
+      DB_NAME: knowledge_portal_bench
+      DATABASE_URL: postgresql://nexus_bench:bench_secure_password_isolated_2026@postgres-bench:5432/knowledge_portal_bench
+      REDIS_HOST: redis-bench
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis-bench:6379/0
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      JWT_SECRET: nexus-benchmark-secret-key-isolated-2026
+      PGVECTOR_ENABLED: "true"
+      ENVIRONMENT: benchmark
+    volumes:
+      - ../backend:/app
+      - uploads_bench:/app/uploads
+      - ./:/benchmark:ro
+    depends_on:
+      redis-bench:
+        condition: service_healthy
+      postgres-bench:
+        condition: service_healthy
+    networks:
+      - nexus-bench-network
+
+volumes:
+  postgres_bench_data:
+  redis_bench_data:
+  uploads_bench:
+
+networks:
+  nexus-bench-network:
+    driver: bridge

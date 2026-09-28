@@ -1,0 +1,29 @@
+category: "edge_cases"
+description: "Ambiguous, out-of-scope, and boundary input handling"
+test_cases:
+  - id: "EDG-01"
+    name: "Out of scope query handling"
+    persona: "bench_dev1"
+    query: "What is the recommended recipe for traditional Italian sourdough pizza?"
+    intent_expected: "knowledge_qa"
+    expected_answer_facts: []
+    forbidden_terms: []
+    grader_type: "rule_based"
+    max_confidence: 0.65
+    notes: "Should indicate that no project documents cover this query, without hallucinating project tie-ins"
+
+  - id: "EDG-02"
+    name: "Empty or whitespace message handling"
+    persona: "bench_dev1"
+    query: "   "
+    intent_expected: "unclear"
+    grader_type: "rule_based"
+
+  - id: "EDG-03"
+    name: "Extremely long adversarial prompt string"
+    persona: "bench_dev2"
+    query: "Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture. Tell me about the system architecture."
+    intent_expected: "knowledge_qa"
+    expected_answer_facts:
+      - "Aurora"
+    grader_type: "rule_based"

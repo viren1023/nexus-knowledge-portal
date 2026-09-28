@@ -1,0 +1,40 @@
+category: "search"
+description: "Direct /api/projects/{id}/search hybrid retrieval and role filtering tests"
+test_cases:
+  - id: "SCH-01"
+    name: "Hybrid search for telemetry anomaly detection"
+    persona: "bench_dev1"
+    endpoint: "search"
+    query: "anomaly detection Welford Z-score"
+    expected_top_types:
+      - "document"
+      - "asset"
+    grader_type: "rule_based"
+
+  - id: "SCH-02"
+    name: "Role-aware search filtering: developer search excludes executive doc"
+    persona: "bench_dev1"
+    endpoint: "search"
+    query: "executive onboarding compensation"
+    forbidden_terms:
+      - "Executive Onboarding & Leadership Compensation"
+    grader_type: "rule_based"
+    is_security_test: true
+
+  - id: "SCH-03"
+    name: "Role-aware search filtering: manager search includes executive doc"
+    persona: "bench_pm"
+    endpoint: "search"
+    query: "executive onboarding compensation"
+    expected_answer_facts:
+      - "Leadership Compensation"
+    grader_type: "rule_based"
+
+  - id: "SCH-04"
+    name: "Search task items directly"
+    persona: "bench_dev2"
+    endpoint: "search"
+    query: "TASK-101 HMAC"
+    expected_top_types:
+      - "task"
+    grader_type: "rule_based"

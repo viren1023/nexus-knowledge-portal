@@ -1,0 +1,42 @@
+category: "asset_search"
+description: "Reusable code discovery and ranking by reusability score"
+test_cases:
+  - id: "AST-01"
+    name: "Find HMAC signature verification function"
+    persona: "bench_dev1"
+    query: "Find a helper function to verify HMAC-SHA256 signatures for incoming webhooks"
+    intent_expected: "asset_search"
+    expected_answer_facts:
+      - "verify_hmac_signature"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "AST-02"
+    name: "Find percentile calculation function"
+    persona: "bench_dev2"
+    query: "Is there a reusable function to calculate percentiles like p99 or p95?"
+    intent_expected: "asset_search"
+    expected_answer_facts:
+      - "calculate_percentile"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "AST-03"
+    name: "Find Welford streaming algorithm function"
+    persona: "bench_lead"
+    query: "Which code asset implements Welford single-pass algorithm for running variance?"
+    intent_expected: "asset_search"
+    expected_answer_facts:
+      - "welford_update"
+    forbidden_terms: []
+    grader_type: "rule_based"
+
+  - id: "AST-04"
+    name: "Find Slack message card formatter"
+    persona: "bench_dev2"
+    query: "Find reusable code that formats Slack notification cards"
+    intent_expected: "asset_search"
+    expected_answer_facts:
+      - "format_slack_notification_card"
+    forbidden_terms: []
+    grader_type: "rule_based"
